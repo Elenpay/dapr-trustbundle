@@ -4,8 +4,7 @@ A Kubernetes operator that helps Dapr to meet Cert-Manager so we can let cert-ma
 
 ## The problem
 
-Cert Manager is a great tool ankubectl patch deployment operator -n dapr-trustbundle-system \
-  --patch '{"spec":{"template":{"spec":{"containers":[{"name":"manager","args":["--leader-elect","--health-probe-bind-address=:8081","--source-secret-name=my-custom-secret","--target-namespace=my-namespace"]}]}}}}'pretty much the standard to certificates management in Kubernetes spaces. However Cert Manager comes with some strong opinion on resulting secrets format and key names which collision with Dapr having its own strong opinion on `dapr-trust-bundle` secret and keys to be used by Dapr Sentinel service.
+Cert Manager is a great tool and pretty much the standard to certificates management in Kubernetes spaces. However Cert Manager comes with some strong opinion on resulting secrets format and key names which collision with Dapr having its own strong opinion on `dapr-trust-bundle` secret and keys to be used by Dapr Sentinel service.
 
 ## Description
 
