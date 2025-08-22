@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Run on Ubuntu
+    name: LINT
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
