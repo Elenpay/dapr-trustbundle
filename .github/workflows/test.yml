@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+concurrency:
+  # Cancel any previous workflows if they are from a PR or push.
+  group: ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run on Ubuntu
