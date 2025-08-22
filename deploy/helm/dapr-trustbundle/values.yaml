@@ -20,8 +20,6 @@ fullnameOverride: ""
 namespace:
   # The namespace where the operator will be deployed
   name: dapr-system
-  # Whether to create the namespace
-  create: true
 
 # Service account configuration
 serviceAccount:

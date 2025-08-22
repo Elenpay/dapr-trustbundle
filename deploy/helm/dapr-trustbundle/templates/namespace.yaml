@@ -1,8 +1,0 @@
-{{- if and .Values.namespace.create (not (lookup "v1" "Namespace" "" (include "dapr-trustbundle.namespace" .))) }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ include "dapr-trustbundle.namespace" . }}
-  labels:
-    {{- include "dapr-trustbundle.labels" . | nindent 4 }}
-{{- end }}
