@@ -1,0 +1,25 @@
+apiVersion: v2
+name: dapr-trustbundle
+description: A Helm chart for Dapr Trust Bundle Operator
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+home: https://github.com/elenpay/dapr-trustbundle
+sources:
+  - https://github.com/elenpay/dapr-trustbundle/tree/main/dapr-trustbundle
+
+maintainers:
+  - name: Elenpay
+    url: https://elenpay.tech
+
+keywords:
+  - dapr
+  - kubernetes
+  - operator
+  - certificate
+  - trust-bundle
+
+annotations:
+  category: Infrastructure
+  licenses: Apache-2.0

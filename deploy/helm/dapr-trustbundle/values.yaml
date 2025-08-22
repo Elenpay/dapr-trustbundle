@@ -1,0 +1,158 @@
+# Default values for dapr-trustbundle.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Image configuration
+image:
+  repository: ghcr.io/elenpay/dapr-trustbundle/dapr-trustbundle
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Name override
+nameOverride: ""
+fullnameOverride: ""
+
+# Namespace configuration
+namespace:
+  # The namespace where the operator will be deployed
+  name: dapr-system
+  # Whether to create the namespace
+  create: true
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  # fsGroup: 2000
+
+# Security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+
+# Resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# Auto scaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Replica count
+replicaCount: 1
+
+# Leader election configuration
+leaderElection:
+  enabled: true
+  id: "5f7b14a1.elenpay.tech"
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8443
+  # Service monitor for Prometheus
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Health probe configuration
+healthProbe:
+  port: 8081
+  path: /healthz
+
+# RBAC configuration
+rbac:
+  create: true
+  # Use cluster-wide permissions (ClusterRole) or namespace-scoped permissions (Role)
+  # Set to false for namespace-scoped permissions when operator only monitors one namespace
+  useClusterRole: true
+  # Additional RBAC rules can be added here
+  additionalRules: []
+
+# Webhook configuration (if webhooks are added in the future)
+webhook:
+  enabled: false
+  port: 9443
+  certDir: /tmp/k8s-webhook-server/serving-certs
+
+# Controller configuration
+controller:
+  # Enable or disable the controller
+  enabled: true
+  # Source secret configuration
+  sourceSecretName: "dapr-trust-bundle-from-cert-manager"
+  # Target namespace where the dapr-trust-bundle secret and configmap will be created
+  targetNamespace: "dapr-system"
+  # Controller manager args
+  args:
+    - --leader-elect
+    - --metrics-bind-address=:8443
+    - --health-probe-bind-address=:8081
+
+# Log level configuration
+logLevel: info
+
+# Environment variables
+env: []
+  # - name: EXAMPLE_ENV
+  #   value: "example-value"
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network policy
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []

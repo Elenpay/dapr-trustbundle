@@ -1,0 +1,56 @@
+1. Check the status of the Dapr Trust Bundle Operator:
+
+   kubectl get pods -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=controller-manager
+
+2. View the operator logs:
+
+   kubectl logs -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=controller-manager -f
+
+3. Test the operator by creating a source secret:
+
+   cat <<EOF | kubectl apply -f -
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: dapr-trust-bundle-from-cert-manager
+     namespace: {{ include "dapr-trustbundle.namespace" . }}
+   type: kubernetes.io/tls
+   data:
+     ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...  # Your CA certificate
+     tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t... # Your TLS certificate
+     tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Your private key
+   EOF
+
+4. Verify the target resources were created:
+
+   # Check target secret
+   kubectl get secret dapr-trust-bundle -n {{ include "dapr-trustbundle.namespace" . }}
+   
+   # Check target configmap
+   kubectl get configmap dapr-trust-bundle -n {{ include "dapr-trustbundle.namespace" . }}
+
+5. View the synchronized data:
+
+   # View secret with renamed keys
+   kubectl get secret dapr-trust-bundle -n {{ include "dapr-trustbundle.namespace" . }} -o yaml
+   
+   # View configmap with ca.crt only
+   kubectl get configmap dapr-trust-bundle -n {{ include "dapr-trustbundle.namespace" . }} -o yaml
+
+{{- if .Values.metrics.enabled }}
+6. Access metrics (if enabled):
+
+   kubectl port-forward -n {{ include "dapr-trustbundle.namespace" . }} svc/{{ include "dapr-trustbundle.fullname" . }}-controller-manager-metrics-service {{ .Values.metrics.port }}:{{ .Values.metrics.port }}
+   
+   Then access: https://localhost:{{ .Values.metrics.port }}/metrics
+{{- end }}
+
+{{- if .Values.metrics.serviceMonitor.enabled }}
+
+7. Monitor with Prometheus:
+
+   The ServiceMonitor has been created to scrape metrics automatically.
+{{- end }}
+
+For more information about the Dapr Trust Bundle Operator, visit:
+https://github.com/elenpay/dapr-trustbundle/tree/main/dapr-trustbundle

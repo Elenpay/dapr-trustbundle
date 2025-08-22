@@ -1,0 +1,74 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: manager-role-namespaced
+  namespace: dapr-system  # This would be replaced with actual target namespace
+rules:
+# Permission to read the source secret
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  resourceNames:
+  - dapr-trust-bundle-from-cert-manager  # This would be replaced with actual source secret name
+# Permission to create secrets and configmaps (no resourceNames needed for create)
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - create
+  - delete
+# Permission to manage the target secret and configmap by name
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+  resourceNames:
+  - dapr-trust-bundle
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+  resourceNames:
+  - dapr-trust-bundle
+# Permission to update finalizers on specific secrets
+- apiGroups:
+  - ""
+  resources:
+  - secrets/finalizers
+  verbs:
+  - update
+  resourceNames:
+  - dapr-trust-bundle-from-cert-manager
+  - dapr-trust-bundle
+# Permission to update status on specific secrets
+- apiGroups:
+  - ""
+  resources:
+  - secrets/status
+  verbs:
+  - get
+  - patch
+  - update
+  resourceNames:
+  - dapr-trust-bundle-from-cert-manager
+  - dapr-trust-bundle

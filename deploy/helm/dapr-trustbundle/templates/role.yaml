@@ -1,0 +1,119 @@
+{{- if and .Values.rbac.create (not .Values.rbac.useClusterRole) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "dapr-trustbundle.fullname" . }}-manager-role
+  namespace: {{ .Values.controller.targetNamespace }}
+  labels:
+    {{- include "dapr-trustbundle.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  resourceNames:
+  - {{ .Values.controller.sourceSecretName }}
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+  resourceNames:
+  - dapr-trust-bundle
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+  resourceNames:
+  - dapr-trust-bundle
+- apiGroups:
+  - ""
+  resources:
+  - secrets/finalizers
+  verbs:
+  - update
+  resourceNames:
+  - {{ .Values.controller.sourceSecretName }}
+  - dapr-trust-bundle
+- apiGroups:
+  - ""
+  resources:
+  - secrets/status
+  verbs:
+  - get
+  - patch
+  - update
+  resourceNames:
+  - {{ .Values.controller.sourceSecretName }}
+  - dapr-trust-bundle
+{{- with .Values.rbac.additionalRules }}
+{{- toYaml . | nindent 0 }}
+{{- end }}
+---
+{{- end }}
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "dapr-trustbundle.fullname" . }}-leader-election-role
+  namespace: {{ include "dapr-trustbundle.namespace" . }}
+  labels:
+    {{- include "dapr-trustbundle.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+{{- end }}

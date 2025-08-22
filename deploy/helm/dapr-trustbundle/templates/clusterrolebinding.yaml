@@ -1,0 +1,33 @@
+{{- if and .Values.rbac.create .Values.rbac.useClusterRole }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "dapr-trustbundle.fullname" . }}-manager-rolebinding
+  labels:
+    {{- include "dapr-trustbundle.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "dapr-trustbundle.fullname" . }}-manager-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "dapr-trustbundle.serviceAccountName" . }}
+  namespace: {{ include "dapr-trustbundle.namespace" . }}
+{{- end }}
+---
+{{- if and .Values.rbac.create .Values.rbac.useClusterRole }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "dapr-trustbundle.fullname" . }}-proxy-rolebinding
+  labels:
+    {{- include "dapr-trustbundle.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "dapr-trustbundle.fullname" . }}-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "dapr-trustbundle.serviceAccountName" . }}
+  namespace: {{ include "dapr-trustbundle.namespace" . }}
+{{- end }}

@@ -1,0 +1,138 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/dapr-trustbundle
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          # Tag with branch name for main branch pushes
+          type=ref,event=branch
+          # Tag with git tag for tagged releases
+          type=ref,event=tag
+          # Tag with PR number for pull requests
+          type=ref,event=pr
+          # Tag with 'latest' for main branch
+          type=raw,value=latest,enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=Dapr Trust Bundle Operator
+          org.opencontainers.image.description=Kubernetes operator for Dapr trust bundle management
+          org.opencontainers.image.vendor=Elenpay
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate deployment manifest
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+      run: |
+        # Determine the image tag based on the event
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          IMAGE_TAG="main"
+        else
+          IMAGE_TAG="${{ github.ref_name }}"
+        fi
+        
+        # Generate the deployment manifest with the correct image
+        make build-installer IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+        
+        # Create artifacts directory
+        mkdir -p artifacts
+        cp dist/install.yaml artifacts/install-${IMAGE_TAG}.yaml
+
+    - name: Upload deployment manifest
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+      uses: actions/upload-artifact@v3
+      with:
+        name: deployment-manifests
+        path: artifacts/
+        retention-days: 30
+
+    - name: Create Release Assets
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      run: |
+        # Create a release bundle with all necessary files
+        mkdir -p release-bundle
+        cp dist/install.yaml release-bundle/install.yaml
+        cp examples/test-secret.yaml release-bundle/test-secret.yaml
+        cp examples/certificate.yaml release-bundle/certificate.yaml
+
+        # Create a release notes file
+        cat > release-bundle/RELEASE_NOTES.md << EOF
+        # Dapr Trust Bundle Operator ${{ github.ref_name }}
+        
+        ## Docker Image
+        \`\`\`
+        ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+        \`\`\`
+        
+        ## Installation
+        \`\`\`bash
+        kubectl apply -f install.yaml
+        \`\`\`
+        
+        ## Testing
+        \`\`\`bash
+        kubectl apply -f test-secret.yaml # or kubectl apply -f examples/certificate.yaml
+        kubectl get secret dapr-trust-bundle -n dapr-system -o yaml
+        \`\`\`
+        
+        ## Image Details
+        - **Platforms**: linux/amd64, linux/arm64
+        - **Registry**: GitHub Container Registry
+        - **Base Image**: gcr.io/distroless/static:nonroot
+        EOF
+        
+        # Create a zip archive
+        cd release-bundle
+        zip -r ../dapr-trustbundle-${{ github.ref_name }}.zip .
+
+    - name: Upload Release Bundle
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-bundle-${{ github.ref_name }}
+        path: dapr-trustbundle-${{ github.ref_name }}.zip
+        retention-days: 90
