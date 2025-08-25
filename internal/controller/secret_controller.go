@@ -100,15 +100,15 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Source secret was deleted, clean up destination resources
-			log.Info("Source secret not found, cleaning up destination resources")
+			log.Info("Source secret not found, cleaning up destination resources", "sourceSecret", r.SourceSecretName, "namespace", req.Namespace)
 			return r.handleSourceSecretDeletion(ctx, req.Namespace)
 		}
-		log.Error(err, "Failed to get source secret")
+		log.Error(err, "Failed to get source secret", "sourceSecret", r.SourceSecretName, "namespace", req.Namespace)
 		return ctrl.Result{}, err
 	}
 
 	// Ensure both destination resources exist and have correct content
-	log.Info("Ensuring destination resources are properly configured")
+	log.Info("Ensuring destination resources are properly configured", "sourceSecret", sourceSecret.Name, "namespace", sourceSecret.Namespace)
 
 	// Create or update the target secret
 	_, err = r.createOrUpdateTargetSecret(ctx, sourceSecret)
@@ -138,19 +138,19 @@ func (r *SecretReconciler) handleSourceSecretDeletion(ctx context.Context, names
 
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to get target secret for cleanup")
+			log.Error(err, "Failed to get target secret for cleanup", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
 			return ctrl.Result{}, err
 		}
 		// Target secret doesn't exist, which is fine
-		log.Info("Target secret already deleted or doesn't exist")
+		log.Info("Target secret already deleted or doesn't exist", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
 	} else {
 		// Target secret exists, delete it
-		log.Info("Deleting target secret since source was deleted")
+		log.Info("Deleting target secret since source was deleted", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
 		if err := r.Delete(ctx, targetSecret); err != nil {
-			log.Error(err, "Failed to delete target secret")
+			log.Error(err, "Failed to delete target secret", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
 			return ctrl.Result{}, err
 		}
-		log.Info("Successfully deleted target secret")
+		log.Info("Successfully deleted target secret", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
 	}
 
 	// Delete target configmap if it exists
@@ -162,19 +162,19 @@ func (r *SecretReconciler) handleSourceSecretDeletion(ctx context.Context, names
 
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to get target configmap for cleanup")
+			log.Error(err, "Failed to get target configmap for cleanup", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
 			return ctrl.Result{}, err
 		}
 		// Target configmap doesn't exist, which is fine
-		log.Info("Target configmap already deleted or doesn't exist")
+		log.Info("Target configmap already deleted or doesn't exist", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
 	} else {
 		// Target configmap exists, delete it
-		log.Info("Deleting target configmap since source was deleted")
+		log.Info("Deleting target configmap since source was deleted", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
 		if err := r.Delete(ctx, targetConfigMap); err != nil {
-			log.Error(err, "Failed to delete target configmap")
+			log.Error(err, "Failed to delete target configmap", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
 			return ctrl.Result{}, err
 		}
-		log.Info("Successfully deleted target configmap")
+		log.Info("Successfully deleted target configmap", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
 	}
 
 	return ctrl.Result{}, nil
@@ -238,16 +238,16 @@ func (r *SecretReconciler) createOrUpdateTargetSecret(ctx context.Context, sourc
 	})
 
 	if err != nil {
-		log.Error(err, "Failed to create or update target secret")
+		log.Error(err, "Failed to create or update target secret", "targetSecret", targetSecret.Name, "namespace", targetSecret.Namespace)
 		return ctrl.Result{}, err
 	}
 
 	if op == controllerutil.OperationResultCreated {
-		log.Info("Created destination secret", "secret", targetSecret.Name, "namespace", targetSecret.Namespace)
+		log.Info("Created destination secret", "secret", targetSecret.Name, "namespace", targetSecret.Namespace, "operation", string(op))
 	} else if op == controllerutil.OperationResultUpdated {
-		log.Info("Updated destination secret for self-healing", "secret", targetSecret.Name, "namespace", targetSecret.Namespace)
+		log.Info("Updated destination secret for self-healing", "secret", targetSecret.Name, "namespace", targetSecret.Namespace, "operation", string(op))
 	} else {
-		log.Info("Destination secret already up to date", "secret", targetSecret.Name, "namespace", targetSecret.Namespace)
+		log.Info("Destination secret already up to date", "secret", targetSecret.Name, "namespace", targetSecret.Namespace, "operation", string(op))
 	}
 	return ctrl.Result{}, nil
 }
@@ -291,16 +291,16 @@ func (r *SecretReconciler) createOrUpdateTargetConfigMap(ctx context.Context, so
 	})
 
 	if err != nil {
-		log.Error(err, "Failed to create or update target configmap")
+		log.Error(err, "Failed to create or update target configmap", "targetConfigMap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace)
 		return ctrl.Result{}, err
 	}
 
 	if op == controllerutil.OperationResultCreated {
-		log.Info("Created destination configmap", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace)
+		log.Info("Created destination configmap", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace, "operation", string(op))
 	} else if op == controllerutil.OperationResultUpdated {
-		log.Info("Updated destination configmap for self-healing", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace)
+		log.Info("Updated destination configmap for self-healing", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace, "operation", string(op))
 	} else {
-		log.Info("Destination configmap already up to date", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace)
+		log.Info("Destination configmap already up to date", "configmap", targetConfigMap.Name, "namespace", targetConfigMap.Namespace, "operation", string(op))
 	}
 	return ctrl.Result{}, nil
 }
