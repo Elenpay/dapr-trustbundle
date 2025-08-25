@@ -30,8 +30,6 @@ jobs:
         run: |
           go mod tidy
           make test
-
-            test-e2e:
   test-e2e:
     name: E2E Testing
     runs-on: ubuntu-latest
