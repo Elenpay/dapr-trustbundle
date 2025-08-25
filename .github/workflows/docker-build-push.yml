@@ -6,9 +6,6 @@ on:
       - main
     tags:
       - '*'
-  pull_request:
-    branches:
-      - main
 
 concurrency:
   # Cancel any previous workflows if they are from a PR or push.
