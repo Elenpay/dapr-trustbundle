@@ -42,6 +42,31 @@ const metricsServiceName = "dapr-trustbundle-controller-manager-metrics-service"
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
 const metricsRoleBindingName = "dapr-trustbundle-metrics-binding"
 
+// Constants for repeated strings
+const (
+	DaprSystemNamespace              = "dapr-system"
+	DaprTrustBundleCertManagerSecret = "dapr-trust-bundle-cert-manager"
+	DaprTrustBundleName              = "dapr-trust-bundle"
+)
+
+// Certificate constants for better readability
+const (
+	testCACert = "-----BEGIN CERTIFICATE-----\n" +
+		"MIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\n" +
+		"Test-CA-Certificate\n" +
+		"-----END CERTIFICATE-----"
+
+	testTLSKey = "-----BEGIN PRIVATE KEY-----\n" +
+		"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKtest123\n" +
+		"Test-Private-Key\n" +
+		"-----END PRIVATE KEY-----"
+
+	testTLSCert = "-----BEGIN CERTIFICATE-----\n" +
+		"MIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\n" +
+		"Test-TLS-Certificate\n" +
+		"-----END CERTIFICATE-----"
+)
+
 var _ = Describe("Manager", Ordered, func() {
 	var controllerPodName string
 
@@ -259,10 +284,10 @@ var _ = Describe("Manager", Ordered, func() {
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 
 		It("should copy source secret with key renaming", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -271,9 +296,9 @@ var _ = Describe("Manager", Ordered, func() {
 			By("creating source secret with TLS certificate data")
 			cmd = exec.Command("kubectl", "create", "secret", "generic", sourceSecretName,
 				"--namespace", testNamespace,
-				"--from-literal=ca.crt=-----BEGIN CERTIFICATE-----\nMIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\nTest-CA-Certificate\n-----END CERTIFICATE-----",
-				"--from-literal=tls.key=-----BEGIN PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKtest123\nTest-Private-Key\n-----END PRIVATE KEY-----",
-				"--from-literal=tls.crt=-----BEGIN CERTIFICATE-----\nMIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\nTest-TLS-Certificate\n-----END CERTIFICATE-----",
+				"--from-literal=ca.crt="+testCACert,
+				"--from-literal=tls.key="+testTLSKey,
+				"--from-literal=tls.crt="+testTLSCert,
 				"--from-literal=extra.data=some-extra-data",
 			)
 			_, err := utils.Run(cmd)
@@ -326,7 +351,8 @@ var _ = Describe("Manager", Ordered, func() {
 			Expect(output).To(Equal("Opaque"), "Destination secret should be Opaque type")
 
 			By("verifying management labels are present")
-			cmd = exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace, "-o", "jsonpath={.metadata.labels}")
+			cmd = exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace,
+				"-o", "jsonpath={.metadata.labels}")
 			output, err = utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).To(ContainSubstring("dapr-trustbundle-operator"), "Should have management label")
@@ -343,10 +369,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should recreate destination resources when deleted (self-healing)", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -431,10 +457,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should clean up destination resources when source secret is deleted", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -479,10 +505,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should update destination resources when source secret is modified", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -506,23 +532,29 @@ var _ = Describe("Manager", Ordered, func() {
 			}, 30*time.Second, 2*time.Second).Should(Succeed())
 
 			By("updating source secret with new certificate data")
-			cmd = exec.Command("kubectl", "patch", "secret", sourceSecretName, "-n", testNamespace, "--type=merge", "-p",
-				`{"data":{"ca.crt":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="}}`)
+			cmd = exec.Command("kubectl", "patch", "secret", sourceSecretName, "-n", testNamespace,
+				"--type=merge", "-p",
+				`{"data":{"ca.crt":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t`+
+					`ClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="}}`)
 			_, err = utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "Failed to update source secret")
 
 			By("verifying destination secret is updated")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace, "-o", "jsonpath={.data.ca\\.crt}")
+				cmd := exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace,
+					"-o", "jsonpath={.data.ca\\.crt}")
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				// The base64 encoded value should match the updated certificate
-				g.Expect(output).To(Equal("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="), "Destination secret should be updated")
+				expectedValue := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t" +
+					"ClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="
+				g.Expect(output).To(Equal(expectedValue), "Destination secret should be updated")
 			}, 30*time.Second, 2*time.Second).Should(Succeed())
 
 			By("verifying destination configmap is updated")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "configmap", destConfigMapName, "-n", testNamespace, "-o", "jsonpath={.data.ca\\.crt}")
+				cmd := exec.Command("kubectl", "get", "configmap", destConfigMapName, "-n", testNamespace,
+					"-o", "jsonpath={.data.ca\\.crt}")
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				// The decoded value should match the updated certificate
