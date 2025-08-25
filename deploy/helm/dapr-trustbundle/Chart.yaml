@@ -23,3 +23,10 @@ keywords:
 annotations:
   category: Infrastructure
   licenses: Apache-2.0
+
+dependencies:
+  - name: cert-manager
+    alias: certManager
+    version: v1.18.2
+    repository: oci://quay.io/jetstack/charts
+    condition: certManager.enabled
