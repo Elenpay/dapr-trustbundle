@@ -34,22 +34,46 @@ import (
 const namespace = "dapr-trustbundle-system"
 
 // serviceAccountName created for the project
-const serviceAccountName = "dapr-trustbundle-controller-manager"
+const serviceAccountName = "dapr-trustbundle-operator"
 
 // metricsServiceName is the name of the metrics service of the project
-const metricsServiceName = "dapr-trustbundle-controller-manager-metrics-service"
+const metricsServiceName = "dapr-trustbundle-operator-metrics-service"
 
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
 const metricsRoleBindingName = "dapr-trustbundle-metrics-binding"
 
-var _ = Describe("Manager", Ordered, func() {
-	var controllerPodName string
+// Constants for repeated strings
+const (
+	DaprSystemNamespace              = "dapr-system"
+	DaprTrustBundleCertManagerSecret = "dapr-trust-bundle-from-cert-manager"
+	DaprTrustBundleName              = "dapr-trust-bundle"
+)
+
+// Certificate constants for better readability
+const (
+	testCACert = "-----BEGIN CERTIFICATE-----\n" +
+		"MIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\n" +
+		"Test-CA-Certificate\n" +
+		"-----END CERTIFICATE-----"
+
+	testTLSKey = "-----BEGIN PRIVATE KEY-----\n" +
+		"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKtest123\n" +
+		"Test-Private-Key\n" +
+		"-----END PRIVATE KEY-----"
+
+	testTLSCert = "-----BEGIN CERTIFICATE-----\n" +
+		"MIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\n" +
+		"Test-TLS-Certificate\n" +
+		"-----END CERTIFICATE-----"
+)
+
+var _ = Describe("Operator", Ordered, func() {
+	var operatorPodName string
 
 	// Before running the tests, set up the environment by creating the namespace,
-	// enforce the restricted security policy to the namespace, installing CRDs,
-	// and deploying the controller.
+	// enforce the restricted security policy to the namespace, and deploy the operator.
 	BeforeAll(func() {
-		By("creating manager namespace")
+		By("creating operator namespace")
 		cmd := exec.Command("kubectl", "create", "ns", namespace)
 		_, err := utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
@@ -60,33 +84,24 @@ var _ = Describe("Manager", Ordered, func() {
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
-		By("installing CRDs")
-		cmd = exec.Command("make", "install")
-		_, err = utils.Run(cmd)
-		Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
-
-		By("deploying the controller-manager")
+		By("deploying the operator")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
 		_, err = utils.Run(cmd)
-		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the operator")
 	})
 
-	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
+	// After all tests have been executed, clean up by undeploying the operator
 	// and deleting the namespace.
 	AfterAll(func() {
 		By("cleaning up the curl pod for metrics")
 		cmd := exec.Command("kubectl", "delete", "pod", "curl-metrics", "-n", namespace)
 		_, _ = utils.Run(cmd)
 
-		By("undeploying the controller-manager")
+		By("undeploying the operator")
 		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
 
-		By("uninstalling CRDs")
-		cmd = exec.Command("make", "uninstall")
-		_, _ = utils.Run(cmd)
-
-		By("removing manager namespace")
+		By("removing operator namespace")
 		cmd = exec.Command("kubectl", "delete", "ns", namespace)
 		_, _ = utils.Run(cmd)
 	})
@@ -96,13 +111,13 @@ var _ = Describe("Manager", Ordered, func() {
 	AfterEach(func() {
 		specReport := CurrentSpecReport()
 		if specReport.Failed() {
-			By("Fetching controller manager pod logs")
-			cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace)
-			controllerLogs, err := utils.Run(cmd)
+			By("Fetching operator pod logs")
+			cmd := exec.Command("kubectl", "logs", operatorPodName, "-n", namespace)
+			operatorLogs, err := utils.Run(cmd)
 			if err == nil {
-				_, _ = fmt.Fprintf(GinkgoWriter, "Controller logs:\n %s", controllerLogs)
+				_, _ = fmt.Fprintf(GinkgoWriter, "Operator logs:\n %s", operatorLogs)
 			} else {
-				_, _ = fmt.Fprintf(GinkgoWriter, "Failed to get Controller logs: %s", err)
+				_, _ = fmt.Fprintf(GinkgoWriter, "Failed to get operator logs: %s", err)
 			}
 
 			By("Fetching Kubernetes events")
@@ -123,13 +138,13 @@ var _ = Describe("Manager", Ordered, func() {
 				_, _ = fmt.Fprintf(GinkgoWriter, "Failed to get curl-metrics logs: %s", err)
 			}
 
-			By("Fetching controller manager pod description")
-			cmd = exec.Command("kubectl", "describe", "pod", controllerPodName, "-n", namespace)
+			By("Fetching operator pod description")
+			cmd = exec.Command("kubectl", "describe", "pod", operatorPodName, "-n", namespace)
 			podDescription, err := utils.Run(cmd)
 			if err == nil {
 				fmt.Println("Pod description:\n", podDescription)
 			} else {
-				fmt.Println("Failed to describe controller pod")
+				fmt.Println("Failed to describe operator pod")
 			}
 		}
 	})
@@ -137,13 +152,13 @@ var _ = Describe("Manager", Ordered, func() {
 	SetDefaultEventuallyTimeout(2 * time.Minute)
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	Context("Manager", func() {
+	Context("Operator", func() {
 		It("should run successfully", func() {
-			By("validating that the controller-manager pod is running as expected")
-			verifyControllerUp := func(g Gomega) {
-				// Get the name of the controller-manager pod
+			By("validating that the operator pod is running as expected")
+			verifyOperatorUp := func(g Gomega) {
+				// Get the name of the operator pod
 				cmd := exec.Command("kubectl", "get",
-					"pods", "-l", "control-plane=controller-manager",
+					"pods", "-l", "control-plane=operator",
 					"-o", "go-template={{ range .items }}"+
 						"{{ if not .metadata.deletionTimestamp }}"+
 						"{{ .metadata.name }}"+
@@ -152,22 +167,22 @@ var _ = Describe("Manager", Ordered, func() {
 				)
 
 				podOutput, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Failed to retrieve controller-manager pod information")
+				g.Expect(err).NotTo(HaveOccurred(), "Failed to retrieve operator pod information")
 				podNames := utils.GetNonEmptyLines(podOutput)
-				g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-				controllerPodName = podNames[0]
-				g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
+				g.Expect(podNames).To(HaveLen(1), "expected 1 operator pod running")
+				operatorPodName = podNames[0]
+				g.Expect(operatorPodName).To(ContainSubstring("operator"))
 
 				// Validate the pod's status
 				cmd = exec.Command("kubectl", "get",
-					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
+					"pods", operatorPodName, "-o", "jsonpath={.status.phase}",
 					"-n", namespace,
 				)
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("Running"), "Incorrect controller-manager pod status")
+				g.Expect(output).To(Equal("Running"), "Incorrect operator pod status")
 			}
-			Eventually(verifyControllerUp).Should(Succeed())
+			Eventually(verifyOperatorUp).Should(Succeed())
 		})
 
 		It("should ensure the metrics endpoint is serving metrics", func() {
@@ -198,9 +213,9 @@ var _ = Describe("Manager", Ordered, func() {
 			}
 			Eventually(verifyMetricsEndpointReady).Should(Succeed())
 
-			By("verifying that the controller manager is serving the metrics server")
+			By("verifying that the operator is serving the metrics server")
 			verifyMetricsServerStarted := func(g Gomega) {
-				cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace)
+				cmd := exec.Command("kubectl", "logs", operatorPodName, "-n", namespace)
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("controller-runtime.metrics\tServing metrics server"),
@@ -259,10 +274,10 @@ var _ = Describe("Manager", Ordered, func() {
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 
 		It("should copy source secret with key renaming", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -271,9 +286,9 @@ var _ = Describe("Manager", Ordered, func() {
 			By("creating source secret with TLS certificate data")
 			cmd = exec.Command("kubectl", "create", "secret", "generic", sourceSecretName,
 				"--namespace", testNamespace,
-				"--from-literal=ca.crt=-----BEGIN CERTIFICATE-----\nMIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\nTest-CA-Certificate\n-----END CERTIFICATE-----",
-				"--from-literal=tls.key=-----BEGIN PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKtest123\nTest-Private-Key\n-----END PRIVATE KEY-----",
-				"--from-literal=tls.crt=-----BEGIN CERTIFICATE-----\nMIICJjCCAc+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBiTELMAkGA1UEBhMCVVMx\nTest-TLS-Certificate\n-----END CERTIFICATE-----",
+				"--from-literal=ca.crt="+testCACert,
+				"--from-literal=tls.key="+testTLSKey,
+				"--from-literal=tls.crt="+testTLSCert,
 				"--from-literal=extra.data=some-extra-data",
 			)
 			_, err := utils.Run(cmd)
@@ -326,7 +341,8 @@ var _ = Describe("Manager", Ordered, func() {
 			Expect(output).To(Equal("Opaque"), "Destination secret should be Opaque type")
 
 			By("verifying management labels are present")
-			cmd = exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace, "-o", "jsonpath={.metadata.labels}")
+			cmd = exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace,
+				"-o", "jsonpath={.metadata.labels}")
 			output, err = utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).To(ContainSubstring("dapr-trustbundle-operator"), "Should have management label")
@@ -343,10 +359,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should recreate destination resources when deleted (self-healing)", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -431,10 +447,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should clean up destination resources when source secret is deleted", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -479,10 +495,10 @@ var _ = Describe("Manager", Ordered, func() {
 		})
 
 		It("should update destination resources when source secret is modified", func() {
-			testNamespace := "dapr-system"
-			sourceSecretName := "dapr-trust-bundle-cert-manager"
-			destSecretName := "dapr-trust-bundle"
-			destConfigMapName := "dapr-trust-bundle"
+			testNamespace := DaprSystemNamespace
+			sourceSecretName := DaprTrustBundleCertManagerSecret
+			destSecretName := DaprTrustBundleName
+			destConfigMapName := DaprTrustBundleName
 
 			By("creating test namespace")
 			cmd := exec.Command("kubectl", "create", "namespace", testNamespace)
@@ -506,23 +522,29 @@ var _ = Describe("Manager", Ordered, func() {
 			}, 30*time.Second, 2*time.Second).Should(Succeed())
 
 			By("updating source secret with new certificate data")
-			cmd = exec.Command("kubectl", "patch", "secret", sourceSecretName, "-n", testNamespace, "--type=merge", "-p",
-				`{"data":{"ca.crt":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="}}`)
+			cmd = exec.Command("kubectl", "patch", "secret", sourceSecretName, "-n", testNamespace,
+				"--type=merge", "-p",
+				`{"data":{"ca.crt":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t`+
+					`ClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="}}`)
 			_, err = utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "Failed to update source secret")
 
 			By("verifying destination secret is updated")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace, "-o", "jsonpath={.data.ca\\.crt}")
+				cmd := exec.Command("kubectl", "get", "secret", destSecretName, "-n", testNamespace,
+					"-o", "jsonpath={.data.ca\\.crt}")
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				// The base64 encoded value should match the updated certificate
-				g.Expect(output).To(Equal("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="), "Destination secret should be updated")
+				expectedValue := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t" +
+					"ClVwZGF0ZWQtQ0EtQ2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="
+				g.Expect(output).To(Equal(expectedValue), "Destination secret should be updated")
 			}, 30*time.Second, 2*time.Second).Should(Succeed())
 
 			By("verifying destination configmap is updated")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "configmap", destConfigMapName, "-n", testNamespace, "-o", "jsonpath={.data.ca\\.crt}")
+				cmd := exec.Command("kubectl", "get", "configmap", destConfigMapName, "-n", testNamespace,
+					"-o", "jsonpath={.data.ca\\.crt}")
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				// The decoded value should match the updated certificate

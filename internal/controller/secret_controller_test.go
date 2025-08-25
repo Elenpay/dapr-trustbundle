@@ -31,6 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// Constants for test values
+const (
+	DaprSystemNamespace = "dapr-system"
+)
+
 var _ = Describe("SecretReconciler", func() {
 	var (
 		ctx        context.Context
@@ -52,13 +57,13 @@ var _ = Describe("SecretReconciler", func() {
 			Client:           fakeClient,
 			Scheme:           scheme,
 			SourceSecretName: "dapr-trust-bundle-cert-manager",
-			TargetNamespace:  "dapr-system",
+			TargetNamespace:  DaprSystemNamespace,
 		}
 	})
 
 	Describe("Key Renaming Logic", func() {
 		It("should rename keys correctly when creating destination secret", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create source secret with TLS certificate format
 			sourceSecret := &corev1.Secret{
@@ -123,7 +128,7 @@ var _ = Describe("SecretReconciler", func() {
 		})
 
 		It("should create configmap with only ca.crt", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create source secret
 			sourceSecret := &corev1.Secret{
@@ -171,7 +176,7 @@ var _ = Describe("SecretReconciler", func() {
 		})
 
 		It("should handle missing ca.crt gracefully", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create source secret without ca.crt
 			sourceSecret := &corev1.Secret{
@@ -218,11 +223,11 @@ var _ = Describe("SecretReconciler", func() {
 			}, destConfigMap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destConfigMap.Data).NotTo(HaveKey("ca.crt"))
-			Expect(destConfigMap.Data).To(HaveLen(0))
+			Expect(destConfigMap.Data).To(BeEmpty())
 		})
 
 		It("should update destination resources when source secret is updated", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create initial source secret
 			sourceSecret := &corev1.Secret{
@@ -284,7 +289,7 @@ var _ = Describe("SecretReconciler", func() {
 
 	Describe("Self-Healing Logic", func() {
 		It("should recreate destination secret when it's deleted", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create source secret
 			sourceSecret := &corev1.Secret{
@@ -345,7 +350,7 @@ var _ = Describe("SecretReconciler", func() {
 
 	Describe("Cleanup Logic", func() {
 		It("should delete destination resources when source secret is deleted", func() {
-			namespace := "dapr-system"
+			namespace := DaprSystemNamespace
 
 			// Create source secret
 			sourceSecret := &corev1.Secret{
