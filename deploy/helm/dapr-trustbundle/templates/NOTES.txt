@@ -1,10 +1,25 @@
+{{- if not .Values.rbac.create }}
+⚠️  WARNING: RBAC creation is disabled (rbac.create=false)
+   The operator requires proper RBAC permissions to function.
+   Ensure the following resources exist before deploying:
+   {{- if .Values.rbac.useClusterRole }}
+   - ClusterRole with permissions to manage secrets and configmaps
+   - ClusterRoleBinding linking the role to the service account
+   {{- else }}
+   - Role in namespace {{ .Values.controller.targetNamespace }} with permissions to manage secrets and configmaps
+   - RoleBinding linking the role to the service account
+   {{- end }}
+   - Role in namespace {{ include "dapr-trustbundle.namespace" . }} for leader election (configmaps, leases, events)
+   - RoleBinding for leader election
+
+{{- end }}
 1. Check the status of the Dapr Trust Bundle Operator:
 
-   kubectl get pods -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=controller-manager
+   kubectl get pods -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=operator
 
 2. View the operator logs:
 
-   kubectl logs -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=controller-manager -f
+   kubectl logs -n {{ include "dapr-trustbundle.namespace" . }} -l control-plane=operator -f
 
 3. Test the operator by creating a source secret:
 
