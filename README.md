@@ -25,6 +25,30 @@ So you will simply generate that `dapr-trust-bundle-from-cert-manager` as a resu
    - Adds management labels to track the created secret
 3. When the source secret is deleted, the target secret is also cleaned up
 
+``` mermaid
+graph TD
+    subgraph "Cert Manager"
+        A[certificate : ca]
+        B[certificate : bundle]
+    end
+
+    C{Dapr-Trustbundle}
+
+    subgraph "Dapr"
+        D[secrets : dapr-trust-bundle]
+        E[configmap : dapr-trust-bundle]
+    end
+
+    subgraph cert-manager_bundle [secret : dapr-cert-bundle-from-cert-manager]
+    end
+
+    B --> cert-manager_bundle
+    A --> cert-manager_bundle
+    cert-manager_bundle --> C
+    C -- "ca.crt => ca.crt<br>issuer.crt => tls.crt<br>issuer.key => tls.key" --> D
+    C -- "ca.crt => ca.crt" --> E
+```
+
 ### Configuration
 
 The operator can be configured using command-line flags:
