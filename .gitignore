@@ -42,3 +42,7 @@ Thumbs.db
 
 # Docker build cache
 .docker/
+
+
+# Helm chart dependencies
+deploy/helm/dapr-trustbundle/charts/
