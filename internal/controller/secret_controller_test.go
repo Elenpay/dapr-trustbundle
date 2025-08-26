@@ -97,7 +97,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination secret was created with correct key renaming
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
@@ -124,7 +124,7 @@ var _ = Describe("SecretReconciler", func() {
 
 			// Check management labels
 			Expect(destSecret.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "dapr-trustbundle-operator"))
-			Expect(destSecret.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", "dapr-trust-bundle"))
+			Expect(destSecret.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", DaprTrustBundleName))
 		})
 
 		It("should create configmap with only ca.crt", func() {
@@ -160,7 +160,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify configmap was created with only ca.crt
 			destConfigMap := &corev1.ConfigMap{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destConfigMap)
 			Expect(err).NotTo(HaveOccurred())
@@ -172,7 +172,7 @@ var _ = Describe("SecretReconciler", func() {
 
 			// Check management labels
 			Expect(destConfigMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "dapr-trustbundle-operator"))
-			Expect(destConfigMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", "dapr-trust-bundle"))
+			Expect(destConfigMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", DaprTrustBundleName))
 		})
 
 		It("should handle missing ca.crt gracefully", func() {
@@ -206,7 +206,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination secret was created with available keys
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
