@@ -143,19 +143,19 @@ func (r *SecretReconciler) handleSourceSecretDeletion(ctx context.Context, names
 
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to get target secret for cleanup", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
+			log.Error(err, "Failed to get target secret for cleanup", "targetSecret", DaprTrustBundleName, "namespace", namespace)
 			return ctrl.Result{}, err
 		}
 		// Target secret doesn't exist, which is fine
-		log.Info("Target secret already deleted or doesn't exist", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Target secret already deleted or doesn't exist", "targetSecret", DaprTrustBundleName, "namespace", namespace)
 	} else {
 		// Target secret exists, delete it
-		log.Info("Deleting target secret since source was deleted", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Deleting target secret since source was deleted", "targetSecret", DaprTrustBundleName, "namespace", namespace)
 		if err := r.Delete(ctx, targetSecret); err != nil {
-			log.Error(err, "Failed to delete target secret", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
+			log.Error(err, "Failed to delete target secret", "targetSecret", DaprTrustBundleName, "namespace", namespace)
 			return ctrl.Result{}, err
 		}
-		log.Info("Successfully deleted target secret", "targetSecret", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Successfully deleted target secret", "targetSecret", DaprTrustBundleName, "namespace", namespace)
 	}
 
 	// Delete target configmap if it exists
@@ -167,25 +167,25 @@ func (r *SecretReconciler) handleSourceSecretDeletion(ctx context.Context, names
 
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to get target configmap for cleanup", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
+			log.Error(err, "Failed to get target configmap for cleanup", "targetConfigMap", DaprTrustBundleName, "namespace", namespace)
 			return ctrl.Result{}, err
 		}
 		// Target configmap doesn't exist, which is fine
-		log.Info("Target configmap already deleted or doesn't exist", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Target configmap already deleted or doesn't exist", "targetConfigMap", DaprTrustBundleName, "namespace", namespace)
 	} else {
 		// Target configmap exists, delete it
-		log.Info("Deleting target configmap since source was deleted", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Deleting target configmap since source was deleted", "targetConfigMap", DaprTrustBundleName, "namespace", namespace)
 		if err := r.Delete(ctx, targetConfigMap); err != nil {
-			log.Error(err, "Failed to delete target configmap", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
+			log.Error(err, "Failed to delete target configmap", "targetConfigMap", DaprTrustBundleName, "namespace", namespace)
 			return ctrl.Result{}, err
 		}
-		log.Info("Successfully deleted target configmap", "targetConfigMap", "dapr-trust-bundle", "namespace", namespace)
+		log.Info("Successfully deleted target configmap", "targetConfigMap", DaprTrustBundleName, "namespace", namespace)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-// createOrUpdateTargetSecret creates or updates the dapr-trust-bundle secret
+// createOrUpdateTargetSecret creates or updates the target secret (DaprTrustBundleName)
 func (r *SecretReconciler) createOrUpdateTargetSecret(ctx context.Context, sourceSecret *corev1.Secret) error {
 	log := logf.FromContext(ctx)
 
@@ -237,7 +237,7 @@ func (r *SecretReconciler) createOrUpdateTargetSecret(ctx context.Context, sourc
 			targetSecret.Labels = make(map[string]string)
 		}
 		targetSecret.Labels["app.kubernetes.io/managed-by"] = "dapr-trustbundle-operator"
-		targetSecret.Labels["app.kubernetes.io/component"] = "dapr-trust-bundle"
+		targetSecret.Labels["app.kubernetes.io/component"] = DaprTrustBundleName
 
 		return nil
 	})
@@ -258,7 +258,7 @@ func (r *SecretReconciler) createOrUpdateTargetSecret(ctx context.Context, sourc
 	return nil
 }
 
-// createOrUpdateTargetConfigMap creates or updates the dapr-trust-bundle configmap
+// createOrUpdateTargetConfigMap creates or updates the target configmap (DaprTrustBundleName)
 func (r *SecretReconciler) createOrUpdateTargetConfigMap(ctx context.Context, sourceSecret *corev1.Secret) error {
 	log := logf.FromContext(ctx)
 
@@ -291,7 +291,7 @@ func (r *SecretReconciler) createOrUpdateTargetConfigMap(ctx context.Context, so
 			targetConfigMap.Labels = make(map[string]string)
 		}
 		targetConfigMap.Labels["app.kubernetes.io/managed-by"] = "dapr-trustbundle-operator"
-		targetConfigMap.Labels["app.kubernetes.io/component"] = "dapr-trust-bundle"
+		targetConfigMap.Labels["app.kubernetes.io/component"] = DaprTrustBundleName
 
 		return nil
 	})
@@ -317,8 +317,8 @@ func (r *SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&corev1.Secret{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(object client.Object) bool {
 			// Watch three types of secrets in the target namespace:
-			// 1. Source secret (e.g., dapr-trust-bundle-from-cert-manager)
-			// 2. Destination secret (dapr-trust-bundle)
+			// 1. Source secret (e.g., configured via SourceSecretName)
+			// 2. Destination secret (DaprTrustBundleName)
 			if object.GetNamespace() == r.TargetNamespace {
 				return object.GetName() == r.SourceSecretName || object.GetName() == DaprTrustBundleName
 			}
@@ -328,7 +328,7 @@ func (r *SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&corev1.ConfigMap{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.NewPredicateFuncs(func(object client.Object) bool {
-				// Watch the destination configmap (dapr-trust-bundle)
+				// Watch the destination configmap (DaprTrustBundleName)
 				return object.GetName() == DaprTrustBundleName && object.GetNamespace() == r.TargetNamespace
 			})),
 		).
