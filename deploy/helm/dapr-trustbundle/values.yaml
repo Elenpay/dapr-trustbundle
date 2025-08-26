@@ -154,3 +154,7 @@ networkPolicy:
   enabled: false
   ingress: []
   egress: []
+
+certManager:
+  enabled: false
+  installCRDs: true
