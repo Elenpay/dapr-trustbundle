@@ -30,6 +30,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -205,6 +206,15 @@ func main() {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		// LeaderElectionReleaseOnCancel: true,
+	}
+
+	// Configure namespace-scoped cache for enhanced security when operating in a specific namespace
+	// This limits the controller-runtime cache to only watch resources in the target namespace
+	setupLog.Info("Using namespace-scoped cache for enhanced security", "namespace", targetNamespace)
+	managerOptions.Cache = cache.Options{
+		DefaultNamespaces: map[string]cache.Config{
+			targetNamespace: {},
+		},
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), managerOptions)
