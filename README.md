@@ -87,13 +87,13 @@ kubectl get secret,configmap dapr-trust-bundle -n dapr-system
 
 The operator supports the following configuration flags:
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--source-secret-name` | `dapr-trust-bundle-from-cert-manager` | Name of the source secret to monitor |
-| `--target-namespace` | `dapr-system` | Namespace to monitor and create resources in |
-| `--leader-elect` | `false` | Enable leader election for high availability |
-| `--metrics-bind-address` | `:8443` | Address for the metrics endpoint |
-| `--health-probe-bind-address` | `:8081` | Address for health and readiness probes |
+| Flag                          | Default                               | Description                                  |
+| ----------------------------- | ------------------------------------- | -------------------------------------------- |
+| `--source-secret-name`        | `dapr-trust-bundle-from-cert-manager` | Name of the source secret to monitor         |
+| `--target-namespace`          | `dapr-system`                         | Namespace to monitor and create resources in |
+| `--leader-elect`              | `false`                               | Enable leader election for high availability |
+| `--metrics-bind-address`      | `:8443`                               | Address for the metrics endpoint             |
+| `--health-probe-bind-address` | `:8081`                               | Address for health and readiness probes      |
 
 ### Helm Configuration
 
@@ -103,14 +103,8 @@ controller:
   sourceSecretName: "my-cert-secret"
   targetNamespace: "production"
 
-# Use namespace-scoped RBAC for enhanced security
 rbac:
-  useClusterRole: false
-
-# Enable monitoring
-metrics:
-  serviceMonitor:
-    enabled: true
+  useClusterRole: false # Use namespace-scoped permissions
 ```
 
 ### RBAC Modes
@@ -118,41 +112,62 @@ metrics:
 The operator supports two RBAC modes depending on your deployment method:
 
 #### Cluster-wide RBAC (Kustomize Default)
+
 - **Used by**: `make deploy` (kustomize)
 - Grants cluster-wide permissions to manage secrets and configmaps
 - Suitable for monitoring multiple namespaces
 - Uses ClusterRole and ClusterRoleBinding
 
 #### Namespace-scoped RBAC (Helm Default - Enhanced Security)
+
 - **Used by**: Helm chart with `rbac.useClusterRole: false` (default)
 - Restricts permissions to the target namespace only
 - Uses specific resource names for fine-grained access control
 - Automatically configures namespace-scoped caching to prevent cluster-wide resource listing
 - Recommended for production environments monitoring a single namespace
 
-**Helm Configuration Examples:**
-```yaml
-# Use namespace-scoped RBAC (default)
-rbac:
-  useClusterRole: false
-controller:
-  targetNamespace: "my-namespace"
+## RBAC Permissions
 
-# Or switch to cluster-wide RBAC
-rbac:
-  useClusterRole: true
-```
+The operator requires different permissions based on the deployment mode:
+
+### Cluster-wide RBAC (default)
+
+- `get`, `list`, `watch` on secrets (to monitor source secrets in any namespace)
+- `create`, `update`, `patch`, `delete` on secrets and configmaps (to manage target resources)
+
+### Namespace-scoped RBAC (enhanced security)
+
+- `get`, `list`, `watch` on specific source secret by name (e.g., `dapr-trust-bundle-from-cert-manager`)
+- `create`, `delete`, `patch`, `update` on secrets and configmaps (for resource creation)
+- `get`, `list`, `watch`, `patch`, `update` on `dapr-trust-bundle` secret and configmap specifically
+- `update` on finalizers and status for specific secrets only
+
+### RBAC Modes
+
+#### Cluster-wide RBAC
+
+- Grants cluster-wide permissions to manage secrets and configmaps
+- Suitable for monitoring multiple namespaces
+
+#### Namespace-scoped RBAC (Default for Enhanced Security)
+
+- Restricts permissions to the target namespace only
+- Uses specific resource names for fine-grained access control
+- Automatically configures namespace-scoped caching to prevent cluster-wide resource listing
+- Recommended for production environments monitoring a single namespace
 
 ## Installation Methods
 
 ### Helm Chart
 
 **Basic Installation:**
+
 ```bash
 helm install dapr-trustbundle deploy/helm/dapr-trustbundle
 ```
 
 **Production Installation:**
+
 ```bash
 helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
   --set replicaCount=2 \
@@ -162,6 +177,7 @@ helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
 ```
 
 **Custom Configuration:**
+
 ```bash
 helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
   --set controller.sourceSecretName="custom-cert-secret" \
@@ -194,6 +210,7 @@ curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/script
 ### Basic Usage with cert-manager
 
 1. **Create a cert-manager Certificate:**
+
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -207,10 +224,11 @@ spec:
     kind: ClusterIssuer
   commonName: dapr-trust-bundle
   dnsNames:
-  - dapr-trust-bundle
+    - dapr-trust-bundle
 ```
 
 2. **The operator automatically creates:**
+
 - `Secret/dapr-trust-bundle` with transformed keys
 - `ConfigMap/dapr-trust-bundle` with CA certificate only
 
@@ -270,7 +288,7 @@ helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
   --set image.pullPolicy=Never
 
 # Option 2: Deploy with kustomize (cluster-wide RBAC)
-make deploy
+make kind-deploy
 
 # Run tests
 make test
@@ -280,7 +298,7 @@ make test
 
 ```bash
 # Apply example secret in the dapr-system namespace
-kubectl apply -n dapr-system -f examples/test-secret.yaml 
+kubectl apply -n dapr-system -f examples/test-secret.yaml
 
 # Check operator logs
 kubectl logs -n dapr-system -l control-plane=operator -f
@@ -288,6 +306,38 @@ kubectl logs -n dapr-system -l control-plane=operator -f
 # Clean up
 kind delete cluster --name dapr-trustbundle
 ```
+
+For more details take a look to [./examples/README.md](./examples/README.md)
+
+### CI/CD Pipeline
+
+This project includes GitHub Actions workflows for automated building and releasing:
+
+- **Linting** (`.github/workflows/lint.yml`):
+
+  - Runs `golangci-lint` to check Go code for style and correctness issues
+
+- **Testing** (`.github/workflows/test.yml`):
+
+  - Runs unit tests and integration tests
+  - Ensures code changes do not break existing functionality
+
+- **End-to-End Testing** (`.github/workflows/test-e2e.yml`):
+
+  - Deploys the operator to a test cluster
+  - Runs end-to-end tests against the deployed operator
+
+- **Docker Build & Push** (`.github/workflows/docker-build-push.yml`):
+  - Triggers on pushes to `main` branch and tag creation
+  - Builds multi-platform Docker images (linux/amd64, linux/arm64)
+  - Pushes to GitHub Container Registry (`ghcr.io`)
+  - Generates deployment manifests as artifacts
+
+**Image Tagging Strategy:**
+
+- `main` - Latest development version from main branch
+- `v1.0.0` - Stable release versions
+- `pr-123` - Pull request builds for testing
 
 ### Project Structure
 
@@ -311,16 +361,17 @@ kind delete cluster --name dapr-trustbundle
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `ERROR: no nodes found for cluster "kind"` | Using named Kind cluster but make targets expect default cluster | Either use default cluster name (`kind create cluster`) or manually load image (`kind load docker-image dapr-trustbundle-operator:latest --name your-cluster-name`) |
-| `ImagePullBackOff` | Image not available in cluster | Run `make kind-load` for Kind clusters |
-| RBAC errors | Insufficient permissions | Run `make manifests deploy` to update RBAC |
-| `configmaps is forbidden at cluster scope` | Using namespace RBAC but operator tries cluster-wide access | Switch to Helm deployment (uses namespace-scoped RBAC by default) or set `rbac.useClusterRole: true` |
-| Secret not syncing | Source secret name mismatch | Verify `--source-secret-name` flag matches actual secret |
-| Operator not starting | Configuration errors | Check operator logs and verify flags |
-
-> **Note**: `make deploy` (kustomize) uses cluster-wide RBAC by default, while Helm uses namespace-scoped RBAC by default. For enhanced security, prefer Helm deployment.
+1. **ImagePullBackOff**: Ensure you send the newly built image to your cluster, we use `make kind-load` that takes care of this
+2. **RBAC errors**: Run `make manifests` and `make deploy` to update permissions
+3. # **Secret not syncing**: Check operator logs and verify the source secret name matches exactly
+   | Issue                                      | Cause                                                            | Solution                                                                                                                                                            |
+   | ------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `ERROR: no nodes found for cluster "kind"` | Using named Kind cluster but make targets expect default cluster | Either use default cluster name (`kind create cluster`) or manually load image (`kind load docker-image dapr-trustbundle-operator:latest --name your-cluster-name`) |
+   | `ImagePullBackOff`                         | Image not available in cluster                                   | Run `make kind-load` for Kind clusters                                                                                                                              |
+   | RBAC errors                                | Insufficient permissions                                         | Run `make manifests deploy` to update RBAC                                                                                                                          |
+   | `configmaps is forbidden at cluster scope` | Using namespace RBAC but operator tries cluster-wide access      | Ensure `rbac.useClusterRole: false` and operator will auto-configure namespace caching                                                                              |
+   | Secret not syncing                         | Source secret name mismatch                                      | Verify `--source-secret-name` flag matches actual secret                                                                                                            |
+   | Operator not starting                      | Configuration errors                                             | Check operator logs and verify flags                                                                                                                                |
 
 ### Debug Commands
 
@@ -366,7 +417,7 @@ curl -k https://localhost:8443/metrics
 ### Image Tagging Strategy
 
 - `main` - Latest development version
-- `v1.0.0` - Stable release versions  
+- `v1.0.0` - Stable release versions
 
 ### Available Images
 
@@ -401,4 +452,3 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 ---
 
 For more detailed examples and advanced configuration, see the [`examples/`](examples/) directory and [Helm chart documentation](deploy/helm/dapr-trustbundle/README.md).
-

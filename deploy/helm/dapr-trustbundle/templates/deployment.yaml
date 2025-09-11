@@ -40,8 +40,8 @@ spec:
         {{- end }}
         - --source-secret-name={{ .Values.controller.sourceSecretName }}
         - --target-namespace={{ .Values.controller.targetNamespace }}
-        env:
         {{- with .Values.env }}
+        env:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
