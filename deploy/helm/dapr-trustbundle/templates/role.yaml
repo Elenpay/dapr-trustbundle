@@ -7,15 +7,22 @@ metadata:
   labels:
     {{- include "dapr-trustbundle.labels" . | nindent 4 }}
 rules:
-# Permission to read the source secret
+# Permission to list secrets and configmaps in namespace (required for controller-runtime cache)
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - list
+  - watch
+# Permission to read the source secret by name
 - apiGroups:
   - ""
   resources:
   - secrets
   verbs:
   - get
-  - list
-  - watch
   resourceNames:
   - {{ .Values.controller.sourceSecretName }}
 # Permission to create secrets and configmaps (no resourceNames needed for create)

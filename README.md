@@ -115,21 +115,32 @@ metrics:
 
 ### RBAC Modes
 
-#### Cluster-wide RBAC
+The operator supports two RBAC modes depending on your deployment method:
+
+#### Cluster-wide RBAC (Kustomize Default)
+- **Used by**: `make deploy` (kustomize)
 - Grants cluster-wide permissions to manage secrets and configmaps
 - Suitable for monitoring multiple namespaces
+- Uses ClusterRole and ClusterRoleBinding
 
-#### Namespace-scoped RBAC (Default for Enhanced Security)
+#### Namespace-scoped RBAC (Helm Default - Enhanced Security)
+- **Used by**: Helm chart with `rbac.useClusterRole: false` (default)
 - Restricts permissions to the target namespace only
 - Uses specific resource names for fine-grained access control
 - Automatically configures namespace-scoped caching to prevent cluster-wide resource listing
 - Recommended for production environments monitoring a single namespace
 
+**Helm Configuration Examples:**
 ```yaml
+# Use namespace-scoped RBAC (default)
 rbac:
-  useClusterRole: false # Set true to move to Cluster-wide RBAC
+  useClusterRole: false
 controller:
   targetNamespace: "my-namespace"
+
+# Or switch to cluster-wide RBAC
+rbac:
+  useClusterRole: true
 ```
 
 ## Installation Methods
@@ -250,7 +261,15 @@ kubectl cluster-info --context kind-dapr-trustbundle
 make docker-build
 kind load docker-image dapr-trustbundle-operator:latest --name dapr-trustbundle
 
-# Deploy the operator
+# Deploy the operator (choose one method)
+
+# Option 1: Deploy with Helm (Recommended - namespace-scoped RBAC by default)
+helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
+  --set image.repository=dapr-trustbundle-operator \
+  --set image.tag=latest \
+  --set image.pullPolicy=Never
+
+# Option 2: Deploy with kustomize (cluster-wide RBAC)
 make deploy
 
 # Run tests
@@ -267,10 +286,6 @@ kubectl apply -n dapr-system -f examples/test-secret.yaml
 kubectl logs -n dapr-system -l control-plane=operator -f
 
 # Clean up
-make undeploy
-
-# Clean up when done
-make undeploy
 kind delete cluster --name dapr-trustbundle
 ```
 
@@ -301,9 +316,11 @@ kind delete cluster --name dapr-trustbundle
 | `ERROR: no nodes found for cluster "kind"` | Using named Kind cluster but make targets expect default cluster | Either use default cluster name (`kind create cluster`) or manually load image (`kind load docker-image dapr-trustbundle-operator:latest --name your-cluster-name`) |
 | `ImagePullBackOff` | Image not available in cluster | Run `make kind-load` for Kind clusters |
 | RBAC errors | Insufficient permissions | Run `make manifests deploy` to update RBAC |
-| `configmaps is forbidden at cluster scope` | Using namespace RBAC but operator tries cluster-wide access | Ensure `rbac.useClusterRole: false` and operator will auto-configure namespace caching |
+| `configmaps is forbidden at cluster scope` | Using namespace RBAC but operator tries cluster-wide access | Switch to Helm deployment (uses namespace-scoped RBAC by default) or set `rbac.useClusterRole: true` |
 | Secret not syncing | Source secret name mismatch | Verify `--source-secret-name` flag matches actual secret |
 | Operator not starting | Configuration errors | Check operator logs and verify flags |
+
+> **Note**: `make deploy` (kustomize) uses cluster-wide RBAC by default, while Helm uses namespace-scoped RBAC by default. For enhanced security, prefer Helm deployment.
 
 ### Debug Commands
 
