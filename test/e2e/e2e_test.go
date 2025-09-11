@@ -31,7 +31,7 @@ import (
 )
 
 // namespace where the project is deployed in
-const namespace = "dapr-trustbundle-system"
+const namespace = "dapr-system"
 
 // serviceAccountName created for the project
 const serviceAccountName = "dapr-trustbundle-operator"
