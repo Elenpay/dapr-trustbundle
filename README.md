@@ -218,7 +218,7 @@ kubectl patch secret dapr-trust-bundle-from-cert-manager -n dapr-system \
   -p '{"data":{"new-key":"bmV3LXZhbHVl"}}'
 
 # 4. Verify the changes were propagated
-kubectl get secret dapr-trust-bundle -n dapr-system -o yaml
+kubectl get secret,configmap dapr-trust-bundle -n dapr-system -o yaml
 
 # 5. Monitor operator logs
 kubectl logs -n dapr-system -l control-plane=operator -f
