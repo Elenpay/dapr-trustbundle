@@ -5,15 +5,22 @@ metadata:
   name: manager-role-namespaced
   namespace: dapr-system  # This would be replaced with actual target namespace
 rules:
-# Permission to read the source secret
+# Permission to list secrets and configmaps in namespace (required for controller-runtime cache)
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - list
+  - watch
+# Permission to read the source secret by name
 - apiGroups:
   - ""
   resources:
   - secrets
   verbs:
   - get
-  - list
-  - watch
   resourceNames:
   - dapr-trust-bundle-from-cert-manager  # This would be replaced with actual source secret name
 # Permission to create secrets and configmaps (no resourceNames needed for create)
@@ -32,8 +39,6 @@ rules:
   - secrets
   verbs:
   - get
-  - list
-  - watch
   - patch
   - update
   resourceNames:
@@ -44,8 +49,6 @@ rules:
   - configmaps
   verbs:
   - get
-  - list
-  - watch
   - patch
   - update
   resourceNames:
