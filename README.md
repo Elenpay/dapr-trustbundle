@@ -282,10 +282,12 @@ kind load docker-image dapr-trustbundle-operator:latest --name dapr-trustbundle
 # Deploy the operator (choose one method)
 
 # Option 1: Deploy with Helm (Recommended - namespace-scoped RBAC by default)
-helm install dapr-trustbundle deploy/helm/dapr-trustbundle \
+helm upgrade --install dapr-trustbundle deploy/helm/dapr-trustbundle \
+  --namespace dapr-system \
+  --create-namespace \
   --set image.repository=dapr-trustbundle-operator \
   --set image.tag=latest \
-  --set image.pullPolicy=Never
+  --set image.pullPolicy=Always
 
 # Option 2: Deploy with kustomize (cluster-wide RBAC)
 make kind-deploy
