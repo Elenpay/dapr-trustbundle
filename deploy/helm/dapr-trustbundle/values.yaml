@@ -103,7 +103,7 @@ rbac:
   # Use cluster-wide permissions (ClusterRole) or namespace-scoped permissions (Role)
   # Only applicable when rbac.create is true
   # Set to false for namespace-scoped permissions when operator only monitors one namespace
-  useClusterRole: true
+  useClusterRole: false
   # Additional RBAC rules can be added here
   additionalRules: []
 

@@ -30,6 +30,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -186,7 +187,8 @@ func main() {
 		})
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	// Configure manager options
+	managerOptions := ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -204,7 +206,19 @@ func main() {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		// LeaderElectionReleaseOnCancel: true,
-	})
+	}
+
+	// Check if we should use namespace-scoped caching based on environment variable
+	// This should be set when using namespace-scoped RBAC (Role instead of ClusterRole)
+	if useNamespaceCache := os.Getenv("USE_NAMESPACE_CACHE"); useNamespaceCache == "true" {
+		setupLog.Info("Using namespace-scoped cache for enhanced security", "namespace", targetNamespace)
+		// Limit the cache to only watch the target namespace
+		managerOptions.Cache.DefaultNamespaces = map[string]cache.Config{
+			targetNamespace: {},
+		}
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), managerOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
