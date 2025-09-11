@@ -10,7 +10,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dapr-sentry-root-ca
-  namespace: dapr-system
 spec:
   secretName: dapr-sentry-root-ca
   commonName: dapr-sentry-root-ca-from-cert-manager

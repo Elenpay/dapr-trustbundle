@@ -40,8 +40,12 @@ spec:
         {{- end }}
         - --source-secret-name={{ .Values.controller.sourceSecretName }}
         - --target-namespace={{ .Values.controller.targetNamespace }}
-        {{- with .Values.env }}
         env:
+        {{- if not .Values.rbac.useClusterRole }}
+        - name: USE_NAMESPACE_CACHE
+          value: "true"
+        {{- end }}
+        {{- with .Values.env }}
           {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
