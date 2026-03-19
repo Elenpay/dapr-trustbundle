@@ -363,8 +363,7 @@ This project includes GitHub Actions workflows for automated building and releas
 │   ├── default/                   # Default deployment
 │   ├── rbac/                      # RBAC permissions
 │   └── manager/                   # Manager deployment
-├── deploy/                        # Distribution artifacts
-│   ├── install.yaml               # Complete installation manifest
+├── deploy/                        # Helm-based distribution artifacts
 │   ├── helm/dapr-trustbundle/     # Helm chart
 │   └── helm-packages/             # Packaged charts
 ├── examples/                      # Usage examples
