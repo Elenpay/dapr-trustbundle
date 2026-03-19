@@ -46,3 +46,6 @@ Thumbs.db
 
 # Helm chart dependencies
 deploy/helm/dapr-trustbundle/charts/
+
+# Compiled binary
+main

@@ -60,12 +60,24 @@ helm install dapr-trustbundle deploy/helm/dapr-trustbundle
 
 ### Install with kubectl
 
-```bash
-# Install the latest release
-kubectl apply -f https://github.com/elenpay/dapr-trustbundle/releases/latest/download/install.yaml
+**For a remote cluster** (image must be pushed to a registry accessible by the cluster):
 
-# Or use the installation script
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash
+```bash
+# Build and push the operator image to your registry
+make docker-build docker-push IMG=<registry/image:tag>
+
+# Generate the install manifest with the image reference
+make build-installer IMG=<registry/image:tag>
+
+# Apply the generated manifest
+kubectl apply -f dist/install.yaml
+```
+
+**For a local Kind cluster** (no registry needed):
+
+```bash
+# Build, load image into Kind, and deploy in one step
+make kind-deploy IMG=<your-operator-image>
 ```
 
 ### Verify Installation
@@ -193,16 +205,6 @@ kubectl apply -f https://github.com/elenpay/dapr-trustbundle/releases/latest/dow
 
 # Development version
 kubectl apply -f https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/deploy/install.yaml
-```
-
-### Installation Script
-
-```bash
-# Quick install
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash
-
-# Install and test
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash -s -- --test
 ```
 
 ## Usage Examples
@@ -355,7 +357,6 @@ This project includes GitHub Actions workflows for automated building and releas
 │   ├── helm/dapr-trustbundle/     # Helm chart
 │   └── helm-packages/             # Packaged charts
 ├── examples/                      # Usage examples
-├── scripts/install.sh             # Installation script
 └── .github/workflows/             # CI/CD pipelines
 ```
 
