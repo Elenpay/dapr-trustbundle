@@ -66,12 +66,20 @@ helm install dapr-trustbundle deploy/helm/dapr-trustbundle
 # Build and push the operator image to your registry
 make docker-build docker-push IMG=<registry/image:tag>
 
-# Generate the install manifest with the image reference
-make build-installer IMG=<registry/image:tag>
+# Deploy using Helm, overriding the image to use your registry
+helm upgrade --install dapr-trustbundle deploy/helm/dapr-trustbundle \
+  --set image.repository=<registry/image> \
+  --set image.tag=<tag>
 
-# Apply the generated manifest
-kubectl apply -f dist/install.yaml
+# Alternatively, download the release manifest, update the image field,
+# and apply it to your cluster:
+kubectl apply -f <path-to-updated-release-manifest>.yaml
 ```
+
+> Note: The `make build-installer` flow is intended for local KIND-style development.
+> It applies the `config/default/manager_image_pull_policy_patch.yaml` patch, which
+> sets `imagePullPolicy: Never` and prevents a remote cluster from pulling the image
+> from your registry.
 
 **For a local Kind cluster** (no registry needed):
 
