@@ -84,8 +84,11 @@ kubectl apply -f <path-to-updated-release-manifest>.yaml
 **For a local Kind cluster** (no registry needed):
 
 ```bash
-# Build, load image into Kind, and deploy in one step
-make kind-deploy IMG=<your-operator-image>
+# Build and load the image into the Kind cluster
+make kind-load IMG=<your-operator-image>
+
+# Deploy the operator
+make deploy IMG=<your-operator-image>
 ```
 
 ### Verify Installation
