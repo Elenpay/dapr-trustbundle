@@ -60,12 +60,35 @@ helm install dapr-trustbundle deploy/helm/dapr-trustbundle
 
 ### Install with kubectl
 
-```bash
-# Install the latest release
-kubectl apply -f https://github.com/elenpay/dapr-trustbundle/releases/latest/download/install.yaml
+**For a remote cluster** (image must be pushed to a registry accessible by the cluster):
 
-# Or use the installation script
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash
+```bash
+# Build and push the operator image to your registry
+make docker-build docker-push IMG=<registry/image:tag>
+
+# Deploy using Helm, overriding the image to use your registry
+helm upgrade --install dapr-trustbundle deploy/helm/dapr-trustbundle \
+  --set image.repository=<registry/image> \
+  --set image.tag=<tag>
+
+# Alternatively, download the release manifest, update the image field,
+# and apply it to your cluster:
+kubectl apply -f <path-to-updated-release-manifest>.yaml
+```
+
+> Note: The `make build-installer` flow is intended for local KIND-style development.
+> It applies the `config/default/manager_image_pull_policy_patch.yaml` patch, which
+> sets `imagePullPolicy: Never` and prevents a remote cluster from pulling the image
+> from your registry.
+
+**For a local Kind cluster** (no registry needed):
+
+```bash
+# Build and load the image into the Kind cluster
+make kind-load IMG=<your-operator-image>
+
+# Deploy the operator
+make deploy IMG=<your-operator-image>
 ```
 
 ### Verify Installation
@@ -193,16 +216,6 @@ kubectl apply -f https://github.com/elenpay/dapr-trustbundle/releases/latest/dow
 
 # Development version
 kubectl apply -f https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/deploy/install.yaml
-```
-
-### Installation Script
-
-```bash
-# Quick install
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash
-
-# Install and test
-curl -sSL https://raw.githubusercontent.com/elenpay/dapr-trustbundle/main/scripts/install.sh | bash -s -- --test
 ```
 
 ## Usage Examples
@@ -350,12 +363,10 @@ This project includes GitHub Actions workflows for automated building and releas
 │   ├── default/                   # Default deployment
 │   ├── rbac/                      # RBAC permissions
 │   └── manager/                   # Manager deployment
-├── deploy/                        # Distribution artifacts
-│   ├── install.yaml               # Complete installation manifest
+├── deploy/                        # Helm-based distribution artifacts
 │   ├── helm/dapr-trustbundle/     # Helm chart
 │   └── helm-packages/             # Packaged charts
 ├── examples/                      # Usage examples
-├── scripts/install.sh             # Installation script
 └── .github/workflows/             # CI/CD pipelines
 ```
 
