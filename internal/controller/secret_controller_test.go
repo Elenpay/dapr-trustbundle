@@ -33,13 +33,13 @@ import (
 
 // Constants for test values
 const (
-	DaprSystemNamespace          = "dapr-system"
-	sourceSecretName            = "dapr-trust-bundle-cert-manager"
-	testCACertKey               = "ca.crt"
-	testTLSKey                  = "tls.key"
-	testTLSCert                 = "tls.crt"
-	testIssuerKey               = "issuer.key"
-	testIssuerCert              = "issuer.crt"
+	DaprSystemNamespace = "dapr-system"
+	sourceSecretName    = "dapr-trust-bundle-cert-manager"
+	testCACertKey       = "ca.crt"
+	testTLSKey          = "tls.key"
+	testTLSCert         = "tls.crt"
+	testIssuerKey       = "issuer.key"
+	testIssuerCert      = "issuer.crt"
 )
 
 var _ = Describe("SecretReconciler", func() {
@@ -79,10 +79,10 @@ var _ = Describe("SecretReconciler", func() {
 				},
 				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{
-					testCACertKey:  []byte("test-ca-certificate"),
-					testTLSKey:     []byte("test-private-key"),
-					testTLSCert:    []byte("test-tls-certificate"),
-					"extra.data": []byte("should-be-filtered"),
+					testCACertKey: []byte("test-ca-certificate"),
+					testTLSKey:    []byte("test-private-key"),
+					testTLSCert:   []byte("test-tls-certificate"),
+					"extra.data":  []byte("should-be-filtered"),
 				},
 			}
 
@@ -143,10 +143,10 @@ var _ = Describe("SecretReconciler", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					testCACertKey:  []byte("test-ca-certificate"),
-					testTLSKey:     []byte("test-private-key"),
-					testTLSCert:    []byte("test-tls-certificate"),
-					"other.data": []byte("should-be-ignored"),
+					testCACertKey: []byte("test-ca-certificate"),
+					testTLSKey:    []byte("test-private-key"),
+					testTLSCert:   []byte("test-tls-certificate"),
+					"other.data":  []byte("should-be-ignored"),
 				},
 			}
 
@@ -242,9 +242,9 @@ var _ = Describe("SecretReconciler", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					testCACertKey:  []byte("initial-ca-certificate"),
-					testTLSKey:     []byte("initial-private-key"),
-					testTLSCert:    []byte("initial-tls-certificate"),
+					testCACertKey: []byte("initial-ca-certificate"),
+					testTLSKey:    []byte("initial-private-key"),
+					testTLSCert:   []byte("initial-tls-certificate"),
 				},
 			}
 
