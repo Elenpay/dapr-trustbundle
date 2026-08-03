@@ -33,7 +33,13 @@ import (
 
 // Constants for test values
 const (
-	DaprSystemNamespace = "dapr-system"
+	DaprSystemNamespace          = "dapr-system"
+	sourceSecretName            = "dapr-trust-bundle-cert-manager"
+	testCACertKey               = "ca.crt"
+	testTLSKey                  = "tls.key"
+	testTLSCert                 = "tls.crt"
+	testIssuerKey               = "issuer.key"
+	testIssuerCert              = "issuer.crt"
 )
 
 var _ = Describe("SecretReconciler", func() {
@@ -56,7 +62,7 @@ var _ = Describe("SecretReconciler", func() {
 		reconciler = &SecretReconciler{
 			Client:           fakeClient,
 			Scheme:           scheme,
-			SourceSecretName: "dapr-trust-bundle-cert-manager",
+			SourceSecretName: sourceSecretName,
 			TargetNamespace:  DaprSystemNamespace,
 		}
 	})
@@ -68,14 +74,14 @@ var _ = Describe("SecretReconciler", func() {
 			// Create source secret with TLS certificate format
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{
-					"ca.crt":     []byte("test-ca-certificate"),
-					"tls.key":    []byte("test-private-key"),
-					"tls.crt":    []byte("test-tls-certificate"),
+					testCACertKey:  []byte("test-ca-certificate"),
+					testTLSKey:     []byte("test-private-key"),
+					testTLSCert:    []byte("test-tls-certificate"),
 					"extra.data": []byte("should-be-filtered"),
 				},
 			}
@@ -85,7 +91,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Reconcile
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -107,17 +113,17 @@ var _ = Describe("SecretReconciler", func() {
 			// tls.key → issuer.key
 			// tls.crt → issuer.crt
 			// All other keys are filtered out
-			Expect(destSecret.Data).To(HaveKey("ca.crt"))
-			Expect(destSecret.Data).To(HaveKey("issuer.key"))
-			Expect(destSecret.Data).To(HaveKey("issuer.crt"))
-			Expect(destSecret.Data).NotTo(HaveKey("tls.key"))
-			Expect(destSecret.Data).NotTo(HaveKey("tls.crt"))
+			Expect(destSecret.Data).To(HaveKey(testCACertKey))
+			Expect(destSecret.Data).To(HaveKey(testIssuerKey))
+			Expect(destSecret.Data).To(HaveKey(testIssuerCert))
+			Expect(destSecret.Data).NotTo(HaveKey(testTLSKey))
+			Expect(destSecret.Data).NotTo(HaveKey(testTLSCert))
 			Expect(destSecret.Data).NotTo(HaveKey("extra.data"))
 
 			// Check values are copied correctly
-			Expect(string(destSecret.Data["ca.crt"])).To(Equal("test-ca-certificate"))
-			Expect(string(destSecret.Data["issuer.key"])).To(Equal("test-private-key"))
-			Expect(string(destSecret.Data["issuer.crt"])).To(Equal("test-tls-certificate"))
+			Expect(string(destSecret.Data[testCACertKey])).To(Equal("test-ca-certificate"))
+			Expect(string(destSecret.Data[testIssuerKey])).To(Equal("test-private-key"))
+			Expect(string(destSecret.Data[testIssuerCert])).To(Equal("test-tls-certificate"))
 
 			// Check secret type is changed to Opaque
 			Expect(destSecret.Type).To(Equal(corev1.SecretTypeOpaque))
@@ -133,13 +139,13 @@ var _ = Describe("SecretReconciler", func() {
 			// Create source secret
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"ca.crt":     []byte("test-ca-certificate"),
-					"tls.key":    []byte("test-private-key"),
-					"tls.crt":    []byte("test-tls-certificate"),
+					testCACertKey:  []byte("test-ca-certificate"),
+					testTLSKey:     []byte("test-private-key"),
+					testTLSCert:    []byte("test-tls-certificate"),
 					"other.data": []byte("should-be-ignored"),
 				},
 			}
@@ -149,7 +155,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Reconcile
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -166,9 +172,9 @@ var _ = Describe("SecretReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check that only ca.crt is present
-			Expect(destConfigMap.Data).To(HaveKey("ca.crt"))
+			Expect(destConfigMap.Data).To(HaveKey(testCACertKey))
 			Expect(destConfigMap.Data).To(HaveLen(1))
-			Expect(destConfigMap.Data["ca.crt"]).To(Equal("test-ca-certificate"))
+			Expect(destConfigMap.Data[testCACertKey]).To(Equal("test-ca-certificate"))
 
 			// Check management labels
 			Expect(destConfigMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "dapr-trustbundle-operator"))
@@ -181,12 +187,12 @@ var _ = Describe("SecretReconciler", func() {
 			// Create source secret without ca.crt
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"tls.key": []byte("test-private-key"),
-					"tls.crt": []byte("test-tls-certificate"),
+					testTLSKey:  []byte("test-private-key"),
+					testTLSCert: []byte("test-tls-certificate"),
 				},
 			}
 
@@ -195,7 +201,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Reconcile should not fail even without ca.crt
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -211,18 +217,18 @@ var _ = Describe("SecretReconciler", func() {
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(destSecret.Data).NotTo(HaveKey("ca.crt"))
-			Expect(destSecret.Data).To(HaveKey("issuer.key"))
-			Expect(destSecret.Data).To(HaveKey("issuer.crt"))
+			Expect(destSecret.Data).NotTo(HaveKey(testCACertKey))
+			Expect(destSecret.Data).To(HaveKey(testIssuerKey))
+			Expect(destSecret.Data).To(HaveKey(testIssuerCert))
 
 			// Verify configmap has no data since ca.crt is missing
 			destConfigMap := &corev1.ConfigMap{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destConfigMap)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(destConfigMap.Data).NotTo(HaveKey("ca.crt"))
+			Expect(destConfigMap.Data).NotTo(HaveKey(testCACertKey))
 			Expect(destConfigMap.Data).To(BeEmpty())
 		})
 
@@ -232,13 +238,13 @@ var _ = Describe("SecretReconciler", func() {
 			// Create initial source secret
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"ca.crt":  []byte("initial-ca-certificate"),
-					"tls.key": []byte("initial-private-key"),
-					"tls.crt": []byte("initial-tls-certificate"),
+					testCACertKey:  []byte("initial-ca-certificate"),
+					testTLSKey:     []byte("initial-private-key"),
+					testTLSCert:    []byte("initial-tls-certificate"),
 				},
 			}
 
@@ -247,7 +253,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Initial reconcile
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -256,8 +262,8 @@ var _ = Describe("SecretReconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Update source secret
-			sourceSecret.Data["ca.crt"] = []byte("updated-ca-certificate")
-			sourceSecret.Data["tls.crt"] = []byte("updated-tls-certificate")
+			sourceSecret.Data[testCACertKey] = []byte("updated-ca-certificate")
+			sourceSecret.Data[testTLSCert] = []byte("updated-tls-certificate")
 			Expect(fakeClient.Update(ctx, sourceSecret)).To(Succeed())
 
 			// Reconcile again
@@ -267,23 +273,23 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination secret was updated
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(string(destSecret.Data["ca.crt"])).To(Equal("updated-ca-certificate"))
-			Expect(string(destSecret.Data["issuer.crt"])).To(Equal("updated-tls-certificate"))
-			Expect(string(destSecret.Data["issuer.key"])).To(Equal("initial-private-key")) // unchanged
+			Expect(string(destSecret.Data[testCACertKey])).To(Equal("updated-ca-certificate"))
+			Expect(string(destSecret.Data[testIssuerCert])).To(Equal("updated-tls-certificate"))
+			Expect(string(destSecret.Data[testIssuerKey])).To(Equal("initial-private-key")) // unchanged
 
 			// Verify configmap was updated
 			destConfigMap := &corev1.ConfigMap{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destConfigMap)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(destConfigMap.Data["ca.crt"]).To(Equal("updated-ca-certificate"))
+			Expect(destConfigMap.Data[testCACertKey]).To(Equal("updated-ca-certificate"))
 		})
 	})
 
@@ -294,12 +300,12 @@ var _ = Describe("SecretReconciler", func() {
 			// Create source secret
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"ca.crt":  []byte("test-ca-certificate"),
-					"tls.key": []byte("test-private-key"),
+					testCACertKey: []byte("test-ca-certificate"),
+					testTLSKey:    []byte("test-private-key"),
 				},
 			}
 			Expect(fakeClient.Create(ctx, sourceSecret)).To(Succeed())
@@ -307,7 +313,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Initial reconcile to create destination secret
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -317,7 +323,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination secret exists
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
@@ -329,7 +335,7 @@ var _ = Describe("SecretReconciler", func() {
 			// This simulates the operator receiving an event for the deleted destination secret
 			req = reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle",
+					Name:      DaprTrustBundleName,
 					Namespace: namespace,
 				},
 			}
@@ -339,12 +345,12 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination secret was recreated with self-healing
 			destSecret = &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(destSecret.Data).To(HaveKey("ca.crt"))
-			Expect(destSecret.Data).To(HaveKey("issuer.key"))
+			Expect(destSecret.Data).To(HaveKey(testCACertKey))
+			Expect(destSecret.Data).To(HaveKey(testIssuerKey))
 		})
 	})
 
@@ -355,11 +361,11 @@ var _ = Describe("SecretReconciler", func() {
 			// Create source secret
 			sourceSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"ca.crt": []byte("test-ca-certificate"),
+					testCACertKey: []byte("test-ca-certificate"),
 				},
 			}
 			Expect(fakeClient.Create(ctx, sourceSecret)).To(Succeed())
@@ -367,7 +373,7 @@ var _ = Describe("SecretReconciler", func() {
 			// Initial reconcile to create destination resources
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "dapr-trust-bundle-cert-manager",
+					Name:      sourceSecretName,
 					Namespace: namespace,
 				},
 			}
@@ -377,14 +383,14 @@ var _ = Describe("SecretReconciler", func() {
 			// Verify destination resources exist
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
 
 			destConfigMap := &corev1.ConfigMap{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destConfigMap)
 			Expect(err).NotTo(HaveOccurred())
@@ -398,13 +404,13 @@ var _ = Describe("SecretReconciler", func() {
 
 			// Verify destination resources were deleted
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destSecret)
 			Expect(err).To(HaveOccurred())
 
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "dapr-trust-bundle",
+				Name:      DaprTrustBundleName,
 				Namespace: namespace,
 			}, destConfigMap)
 			Expect(err).To(HaveOccurred())
