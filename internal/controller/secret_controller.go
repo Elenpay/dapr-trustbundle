@@ -49,6 +49,11 @@ import (
 // Constants for repeated strings
 const (
 	DaprTrustBundleName = "dapr-trust-bundle"
+	caCertKey           = "ca.crt"
+	tlsKey              = "tls.key"
+	tlsCert             = "tls.crt"
+	issuerKey           = "issuer.key"
+	issuerCert          = "issuer.crt"
 )
 
 // SecretReconciler reconciles a Secret object
@@ -215,15 +220,15 @@ func (r *SecretReconciler) createOrUpdateTargetSecret(ctx context.Context, sourc
 
 			// Map keys according to renaming rules
 			switch key {
-			case "ca.crt":
+			case caCertKey:
 				// Keep ca.crt as is
-				targetSecret.Data["ca.crt"] = valueCopy
-			case "tls.key":
+				targetSecret.Data[caCertKey] = valueCopy
+			case tlsKey:
 				// Rename tls.key to issuer.key
-				targetSecret.Data["issuer.key"] = valueCopy
-			case "tls.crt":
+				targetSecret.Data[issuerKey] = valueCopy
+			case tlsCert:
 				// Rename tls.crt to issuer.crt
-				targetSecret.Data["issuer.crt"] = valueCopy
+				targetSecret.Data[issuerCert] = valueCopy
 			default:
 				// Skip all other keys - do nothing
 			}
@@ -282,8 +287,8 @@ func (r *SecretReconciler) createOrUpdateTargetConfigMap(ctx context.Context, so
 		}
 
 		// Only copy ca.crt from the source secret
-		if caCrt, exists := sourceSecret.Data["ca.crt"]; exists {
-			targetConfigMap.Data["ca.crt"] = string(caCrt)
+		if caCrt, exists := sourceSecret.Data[caCertKey]; exists {
+			targetConfigMap.Data[caCertKey] = string(caCrt)
 		}
 
 		// Add labels to identify this as managed by our controller
