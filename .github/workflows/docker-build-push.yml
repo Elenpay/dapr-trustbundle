@@ -57,7 +57,7 @@ jobs:
           org.opencontainers.image.vendor=Elenpay
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5.4.0
+      uses: docker/build-push-action@v7.4.0
       with:
         context: .
         push: true
