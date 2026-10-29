@@ -7,7 +7,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v4.6.2'
         - 'docker/build-push-action@v5.4.0'
-        - 'docker/login-action@v3.5.0'
+        - 'docker/login-action@v4.7.0'
         - 'docker/metadata-action@v5.8.0'
         - 'docker/setup-buildx-action@v3.11.1'
     '.github/workflows/lint.yml':
@@ -38,9 +38,9 @@ dependencies:
         commit: 'sha1-ca052bb54ab0790a636c9b5f226502c73d547a25'
         owner_id: 5429470
         repo_id: 241092383
-    'docker/login-action@v3.5.0':
-        ref: 'v3.5.0'
-        commit: 'sha1-184bdaa0721073962dff0199f1fb9940f07167d1'
+    'docker/login-action@v4.7.0':
+        ref: 'v4.7.0'
+        commit: 'sha1-81c6f93d4bc991e510b342a00b419b3bb4efc5c6'
         owner_id: 5429470
         repo_id: 287743349
     'docker/metadata-action@v5.8.0':
