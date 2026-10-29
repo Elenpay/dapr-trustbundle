@@ -5,7 +5,7 @@ version: 'v0.0.3'
 workflows:
     '.github/workflows/docker-build-push.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/upload-artifact@v4.6.2'
+        - 'actions/upload-artifact@v7.0.2'
         - 'docker/build-push-action@v5.4.0'
         - 'docker/login-action@v3.5.0'
         - 'docker/metadata-action@v5.8.0'
@@ -28,9 +28,9 @@ dependencies:
         commit: 'sha1-d35c59abb061a4a6fb18e82ac0862c26744d6ab5'
         owner_id: 44036562
         repo_id: 192624594
-    'actions/upload-artifact@v4.6.2':
-        ref: 'v4.6.2'
-        commit: 'sha1-ea165f8d65b6e75b540449e92b4886f43607fa02'
+    'actions/upload-artifact@v7.0.2':
+        ref: 'v7.0.2'
+        commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         owner_id: 44036562
         repo_id: 192625955
     'docker/build-push-action@v5.4.0':
